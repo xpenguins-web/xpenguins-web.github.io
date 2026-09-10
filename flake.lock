@@ -111,11 +111,11 @@
         "nixpkgs": "nixpkgs_2"
       },
       "locked": {
-        "lastModified": 1789036660,
-        "narHash": "sha256-nBKXuB5/CMoGDqAVDDT84yY85Sx+7pk5wyzkJD/xqsw=",
+        "lastModified": 1789044675,
+        "narHash": "sha256-6lop/JXDjmDUwd81Wi+H7ZwthY8XDfY7ThsGBtEk4i0=",
         "owner": "Grumbel",
         "repo": "xpenguins-web",
-        "rev": "0759741c083ff7cb187f4969a8d3b4084a559bec",
+        "rev": "7a36b7c77ebfc8c156d3237f7f7e719897c0ce1a",
         "type": "github"
       },
       "original": {
