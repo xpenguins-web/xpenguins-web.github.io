@@ -23,42 +23,53 @@
             /index.html
             /xpenguins-web.js
         */
-        site = pkgs.runCommand "xpenguins-pages-site" {
-          nativeBuildInputs = [ pkgs.nodejs ];
-        } ''
+        site = pkgs.runCommand "xpenguins-pages-site" { } ''
           set -euo pipefail
-          mkdir -p $out
+          mkdir -p "$out"
 
-          # Prefer a package that already embeds examples/xpenguins-web.js
-          if [ -f ${webPkg}/share/xpenguins-web/examples/xpenguins-web.js ]; then
-            cp -a ${webPkg}/share/xpenguins-web/examples/. $out/
+          # Store paths are mode 555/444 — never preserve those into $out or
+          # later writes (cp, touch, substituteInPlace) fail with EACCES.
+          copy_rw() {
+            cp -r --no-preserve=mode,ownership "$@"
+          }
+
+          share="${webPkg}/share/xpenguins-web"
+
+          if [ -d "$share/examples" ]; then
+            copy_rw "$share/examples/." "$out/"
           else
-            # Older package layout: examples + dist side by side under share/
-            cp -a ${webPkg}/share/xpenguins-web/examples/. $out/
-            if [ -f ${webPkg}/share/xpenguins-web/dist/xpenguins-web.js ]; then
-              cp ${webPkg}/share/xpenguins-web/dist/xpenguins-web.js $out/xpenguins-web.js
-            elif [ -f ${webPkg}/share/xpenguins-web/xpenguins-web.js ]; then
-              cp ${webPkg}/share/xpenguins-web/xpenguins-web.js $out/xpenguins-web.js
+            echo "xpenguins-web package missing share/.../examples" >&2
+            find "${webPkg}" -type f 2>/dev/null | head -50 >&2 || true
+            exit 1
+          fi
+
+          chmod -R u+w "$out"
+
+          if [ ! -f "$out/xpenguins-web.js" ]; then
+            if [ -f "$share/dist/xpenguins-web.js" ]; then
+              copy_rw "$share/dist/xpenguins-web.js" "$out/xpenguins-web.js"
+            elif [ -f "$share/xpenguins-web.js" ]; then
+              copy_rw "$share/xpenguins-web.js" "$out/xpenguins-web.js"
             else
               echo "xpenguins-web package missing embedded bundle" >&2
-              find ${webPkg}/share -type f >&2 || true
+              find "$share" -type f >&2 || true
               exit 1
-            fi
-            # Rewrite legacy ../dist/ script src if present
-            if [ -f $out/index.html ] && grep -q '../dist/xpenguins-web.js' $out/index.html; then
-              substituteInPlace $out/index.html \
-                --replace-fail 'src="../dist/xpenguins-web.js"' 'src="./xpenguins-web.js"'
             fi
           fi
 
-          test -f $out/index.html
-          test -f $out/xpenguins-web.js
+          chmod -R u+w "$out"
 
-          # GitHub Pages: no Jekyll processing of vendor files
-          touch $out/.nojekyll
+          if [ -f "$out/index.html" ] && grep -q '\.\./dist/xpenguins-web\.js' "$out/index.html"; then
+            substituteInPlace "$out/index.html" \
+              --replace-fail 'src="../dist/xpenguins-web.js"' 'src="./xpenguins-web.js"'
+          fi
 
-          # Helpful root readme for the published artifact
-          cat > $out/README.txt <<EOF
+          test -f "$out/index.html"
+          test -f "$out/xpenguins-web.js"
+
+          touch "$out/.nojekyll"
+
+          cat > "$out/README.txt" <<EOF
 xpenguins-web static demo
 Built from the xpenguins-web Nix package.
 Open index.html (or visit the GitHub Pages URL).
@@ -84,10 +95,5 @@ EOF
 
         checks.site = site;
       }
-    ) // {
-      /*
-        GitHub Actions / Pages often evaluate on x86_64-linux only.
-        Re-export for convenience in docs.
-      */
-    };
+    );
 }
