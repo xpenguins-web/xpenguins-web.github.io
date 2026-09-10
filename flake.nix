@@ -24,7 +24,7 @@
             /xpenguins-web.js
         */
         site = pkgs.runCommand "xpenguins-pages-site" {
-          nativeBuildInputs = [ pkgs.gnused ];
+          nativeBuildInputs = [ pkgs.python3 ];
         } ''
           set -euo pipefail
           mkdir -p "$out"
@@ -69,17 +69,23 @@
           test -f "$out/index.html"
           test -f "$out/xpenguins-web.js"
 
-          touch "$out/.nojekyll"
+          # Canonical bookmarklet → public Pages URL (Python avoids Nix quote hell).
+          python3 -c "
+import re
+from pathlib import Path
+p = Path('$out/index.html')
+t = p.read_text()
+prod = 'https://xpenguins-web.github.io/xpenguins-web.js'
+t = re.sub(r\"var PRODUCTION = '[^']*';\", \"var PRODUCTION = '%s';\" % prod, t)
+t = re.sub(
+    r\"var scriptUrl = new URL\\('xpenguins-web\\.js', window\\.location\\.href\\)\\.href;\",
+    \"var scriptUrl = '%s';\" % prod,
+    t,
+)
+p.write_text(t)
+"
 
-          # Force bookmarklet to the live Pages bundle URL.
-          if [ -f "$out/index.html" ]; then
-            sed -i \
-              's#var scriptUrl = new URL('\''xpenguins-web.js'\'', window.location.href).href;#var scriptUrl = '\''https://xpenguins-web.github.io/xpenguins-web.js'\'';#g' \
-              "$out/index.html" || true
-            sed -i \
-              "s#var PRODUCTION = '[^']*';#var PRODUCTION = 'https://xpenguins-web.github.io/xpenguins-web.js';#g" \
-              "$out/index.html" || true
-          fi
+          touch "$out/.nojekyll"
 
           cat > "$out/README.txt" <<EOF
 xpenguins-web static demo
