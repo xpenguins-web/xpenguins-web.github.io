@@ -23,7 +23,9 @@
             /index.html
             /xpenguins-web.js
         */
-        site = pkgs.runCommand "xpenguins-pages-site" { } ''
+        site = pkgs.runCommand "xpenguins-pages-site" {
+          nativeBuildInputs = [ pkgs.gnused ];
+        } ''
           set -euo pipefail
           mkdir -p "$out"
 
@@ -68,6 +70,16 @@
           test -f "$out/xpenguins-web.js"
 
           touch "$out/.nojekyll"
+
+          # Force bookmarklet to the live Pages bundle URL.
+          if [ -f "$out/index.html" ]; then
+            sed -i \
+              's#var scriptUrl = new URL('\''xpenguins-web.js'\'', window.location.href).href;#var scriptUrl = '\''https://xpenguins-web.github.io/xpenguins-web.js'\'';#g' \
+              "$out/index.html" || true
+            sed -i \
+              "s#var PRODUCTION = '[^']*';#var PRODUCTION = 'https://xpenguins-web.github.io/xpenguins-web.js';#g" \
+              "$out/index.html" || true
+          fi
 
           cat > "$out/README.txt" <<EOF
 xpenguins-web static demo
