@@ -41,3 +41,11 @@ The published site is the built `examples/` demo from xpenguins-web
 
 Site wiring: GPL-2.0-or-later (same family as xpenguins-web).
 Penguin art and runtime follow upstream xpenguins-web / theme licenses.
+
+## Live site
+
+https://xpenguins-web.github.io/
+
+Bookmarklet on the demo loads:
+
+https://xpenguins-web.github.io/xpenguins-web.js
